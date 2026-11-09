@@ -614,6 +614,42 @@ html[data-theme] input[type=range]{background:var(--border)} html[data-theme] ::
                         </div>
                     </div>
 
+                    <!-- Gyro PID / Kp Gains -->
+                    <div class="bg-slate-950/70 border border-panelborder rounded-xl p-4 space-y-3 shadow-sm">
+                        <h3 class="text-xs font-bold uppercase tracking-wider text-accent flex items-center gap-2 border-b border-panelborder pb-2">
+                            <i class="fa-solid fa-sliders"></i> Gyro Correction Gains (PID / Kp)
+                        </h3>
+                        <p class="text-[11px] text-slate-400 leading-normal">
+                            These values are written into every code export. Higher Kp corrects faster but can oscillate; lower Kp is smoother but may leave residual error.
+                        </p>
+                        <div class="space-y-2.5 text-xs">
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <label class="text-slate-300 font-medium" for="input-drive-kp">Drive Kp (straight correction)</label>
+                                    <span class="text-slate-500 font-mono text-[10px]">typical 1.0 – 4.0</span>
+                                </div>
+                                <input type="number" id="input-drive-kp" step="0.1" min="0.1" max="20" value="2.0" onchange="updateGyroGainsFromInput()" class="w-full bg-slate-900 border border-panelborder rounded-lg px-3 py-1.5 text-sm text-white font-mono focus:outline-none focus:border-accent">
+                            </div>
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <label class="text-slate-300 font-medium" for="input-turn-kp">Turn Kp (pivot correction)</label>
+                                    <span class="text-slate-500 font-mono text-[10px]">typical 1.0 – 3.0</span>
+                                </div>
+                                <input type="number" id="input-turn-kp" step="0.1" min="0.1" max="20" value="1.8" onchange="updateGyroGainsFromInput()" class="w-full bg-slate-900 border border-panelborder rounded-lg px-3 py-1.5 text-sm text-white font-mono focus:outline-none focus:border-accent">
+                            </div>
+                            <div>
+                                <div class="flex justify-between mb-1">
+                                    <label class="text-slate-300 font-medium" for="input-turn-tol">Turn tolerance (°)</label>
+                                    <span class="text-slate-500 font-mono text-[10px]">stop when |error| ≤ this</span>
+                                </div>
+                                <input type="number" id="input-turn-tol" step="0.1" min="0.1" max="10" value="1.0" onchange="updateGyroGainsFromInput()" class="w-full bg-slate-900 border border-panelborder rounded-lg px-3 py-1.5 text-sm text-white font-mono focus:outline-none focus:border-accent">
+                            </div>
+                            <button type="button" onclick="resetGyroGains()" class="w-full py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-panelborder rounded-lg text-xs font-medium transition">
+                                Reset gains to defaults (2.0 / 1.8 / 1.0°)
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="bg-slate-950/70 border border-panelborder rounded-xl p-4 space-y-2.5 text-xs shadow-sm">
                         <h3 class="font-bold uppercase tracking-wider text-accent mb-1 flex items-center gap-2 border-b border-panelborder pb-1.5">
                             <i class="fa-solid fa-vial text-emerald-400"></i> Calibration Test Paths
@@ -882,6 +918,9 @@ html[data-theme] input[type=range]{background:var(--border)} html[data-theme] ::
                     <button onclick="helpGo('h-tuning-guide')" class="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-accent hover:text-white text-slate-300 border border-panelborder text-xs font-medium whitespace-nowrap transition flex items-center gap-1.5">
                         <i class="fa-solid fa-wrench text-amber-400"></i> Robot Tuning Guide
                     </button>
+                    <button onclick="helpGo('h-pid')" class="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-accent hover:text-white text-slate-300 border border-panelborder text-xs font-medium whitespace-nowrap transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-sliders text-violet-400"></i> PID Guide
+                    </button>
 
                     <button onclick="helpGo('h-keys')" class="px-3.5 py-1.5 rounded-lg bg-slate-800 hover:bg-accent hover:text-white text-slate-300 border border-panelborder text-xs font-medium whitespace-nowrap transition flex items-center gap-1.5">
                         <i class="fa-solid fa-keyboard text-slate-400"></i> Shortcuts
@@ -982,6 +1021,7 @@ html[data-theme] input[type=range]{background:var(--border)} html[data-theme] ::
                             <ul class="list-disc pl-5 space-y-1 text-slate-400 text-[11px]">
                                 <li>Select your environment: <strong class="text-slate-200">Pybricks Python, Pybricks Blocks, SPIKE Prime Python, EV3 MicroPython</strong>, or <strong class="text-slate-200">Human Driver Steps</strong>.</li>
                                 <li>Click <strong class="text-slate-200">Copy Code</strong> and paste it straight into your robotics software!</li>
+                                <li><strong class="text-slate-200">Gyro gains:</strong> Drive Kp, Turn Kp, and Turn tolerance from the <em>Tuning</em> tab are written into every export so the physical robot matches what you tuned.</li>
                             </ul>
                         </div>
                     </div>
@@ -1075,6 +1115,147 @@ html[data-theme] input[type=range]{background:var(--border)} html[data-theme] ::
                             <span>Result: Your Axle Track Width parameter automatically re-calculates for perfect turns!</span>
                         </div>
                     </div>
+
+                    <!-- PART C: GYRO GAINS -->
+                    <div class="space-y-3 bg-slate-950/60 border border-panelborder rounded-xl p-4">
+                        <div class="flex items-center justify-between border-b border-panelborder pb-2">
+                            <h4 class="font-bold text-sky-300 text-sm flex items-center gap-2">
+                                <span class="w-5 h-5 rounded-full bg-sky-500/20 text-sky-300 flex items-center justify-center font-bold text-xs">C</span>
+                                Tuning Gyro Correction Gains (Kp &amp; Tolerance)
+                            </h4>
+                            <span class="text-[10px] text-slate-400 font-mono">Written into every export</span>
+                        </div>
+
+                        <p class="text-[11px] text-slate-300 leading-relaxed">
+                            After distance and turn calibration look good, open the <strong class="text-white">Tuning</strong> tab and find
+                            <strong class="text-white">Gyro Correction Gains (PID / Kp)</strong>. These numbers control how hard the robot fights heading error while driving and turning. They are injected into Pybricks, SPIKE, EV3, Blocks, and Human exports.
+                        </p>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-[11px]">
+                            <div class="bg-slate-900/80 border border-panelborder rounded-lg p-2.5 space-y-1">
+                                <div class="font-semibold text-slate-100">Drive Kp</div>
+                                <div class="text-slate-400">Default <span class="font-mono text-accent">2.0</span></div>
+                                <p class="text-slate-400 leading-snug">How strongly the robot steers back to the target heading while driving straight. Raise if it drifts; lower if it weaves or oscillates.</p>
+                            </div>
+                            <div class="bg-slate-900/80 border border-panelborder rounded-lg p-2.5 space-y-1">
+                                <div class="font-semibold text-slate-100">Turn Kp</div>
+                                <div class="text-slate-400">Default <span class="font-mono text-accent">1.8</span></div>
+                                <p class="text-slate-400 leading-snug">How aggressively the robot pivots toward the target angle. Raise for snappier turns; lower if it overshoots and hunts.</p>
+                            </div>
+                            <div class="bg-slate-900/80 border border-panelborder rounded-lg p-2.5 space-y-1">
+                                <div class="font-semibold text-slate-100">Turn tolerance (°)</div>
+                                <div class="text-slate-400">Default <span class="font-mono text-accent">1.0°</span></div>
+                                <p class="text-slate-400 leading-snug">Stop the turn when the remaining error is this small or less. Use 1–2° for most mats; tighter only if your hub is very stable.</p>
+                            </div>
+                        </div>
+
+                        <div class="space-y-2.5 text-[11px]">
+                            <div class="flex items-start gap-2.5">
+                                <span class="bg-slate-800 text-accent font-bold px-2 py-0.5 rounded text-[10px] shrink-0 font-mono">STEP 1</span>
+                                <p class="text-slate-300">Export and run a long straight (e.g. 50 cm). If the robot drifts left/right, <strong class="text-white">raise Drive Kp</strong> a little (try +0.5). If it zig-zags, <strong class="text-white">lower Drive Kp</strong>.</p>
+                            </div>
+                            <div class="flex items-start gap-2.5">
+                                <span class="bg-slate-800 text-accent font-bold px-2 py-0.5 rounded text-[10px] shrink-0 font-mono">STEP 2</span>
+                                <p class="text-slate-300">Run the 180° spin test. If the turn ends short or overshoots then corrects, adjust <strong class="text-white">Turn Kp</strong> and/or <strong class="text-white">Turn tolerance</strong> until it settles cleanly.</p>
+                            </div>
+                            <div class="flex items-start gap-2.5">
+                                <span class="bg-slate-800 text-accent font-bold px-2 py-0.5 rounded text-[10px] shrink-0 font-mono">STEP 3</span>
+                                <p class="text-slate-300">Click <strong class="text-accent">Export</strong> again so the new gains appear in the generated code. Gains are also saved with your project (Save / autosave).</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-900/80 p-2.5 rounded-lg border border-slate-800 text-[11px] text-slate-400 flex items-start gap-2">
+                            <i class="fa-solid fa-circle-info text-sky-400 mt-0.5 shrink-0"></i>
+                            <span>Tip: Change one number at a time and re-test. Use <em>Reset gains to defaults</em> if you get lost. Typical useful ranges: Drive Kp 1.0–4.0, Turn Kp 1.0–3.0, tolerance 0.5–2.0°.</span>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- SECTION: PID TUNING GUIDE -->
+                <section id="h-pid" class="space-y-4 scroll-mt-20">
+                    <div class="flex items-center gap-2 border-b border-panelborder pb-2">
+                        <span class="p-1.5 bg-violet-500/10 text-violet-400 rounded-lg border border-violet-500/20"><i class="fa-solid fa-sliders"></i></span>
+                        <div>
+                            <h3 class="font-bold text-white text-base">PID Tuning Guide</h3>
+                            <p class="text-[11px] text-slate-400">What proportional control is, why FLL uses P-only, and how to tune Drive Kp / Turn Kp on the mat</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-violet-950/30 border border-violet-500/30 rounded-xl p-3.5 flex items-start gap-3">
+                        <i class="fa-solid fa-lightbulb text-violet-400 text-lg mt-0.5 shrink-0"></i>
+                        <p class="text-[11px] text-violet-100/90 leading-relaxed">
+                            <strong>PID</strong> is a classic feedback control method. You measure an error, then use up to three terms (P, I, D) to decide how hard to correct.
+                            In Path Studio the gyro loops are <strong>P-only</strong> — that is intentional and common for FLL tank-drive heading control.
+                        </p>
+                    </div>
+
+                    <div class="bg-slate-950/60 border border-panelborder rounded-xl p-4 space-y-3">
+                        <h4 class="font-bold text-slate-100 text-sm">The formula</h4>
+                        <div class="bg-slate-900/80 border border-panelborder rounded-lg p-3 text-[11px] font-mono text-slate-300 leading-relaxed">
+                            output = Kp × error + Ki × (sum of past error) + Kd × (rate of change of error)
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-2 text-[11px]">
+                            <div class="bg-slate-900/80 border border-panelborder rounded-lg p-2.5 space-y-1">
+                                <div class="font-semibold text-emerald-300">P — Proportional</div>
+                                <p class="text-slate-400 leading-snug"><strong class="text-slate-200">“How far am I right now?”</strong> Corrects harder when farther from the target. High → oscillates / weaves. Low → slow, may leave a steady offset.</p>
+                            </div>
+                            <div class="bg-slate-900/80 border border-panelborder rounded-lg p-2.5 space-y-1">
+                                <div class="font-semibold text-amber-300">I — Integral</div>
+                                <p class="text-slate-400 leading-snug"><strong class="text-slate-200">“How long have I been wrong?”</strong> Removes leftover steady-state error that P alone can’t fix. High → overshoot and windup. Rarely needed for FLL gyro drive.</p>
+                            </div>
+                            <div class="bg-slate-900/80 border border-panelborder rounded-lg p-2.5 space-y-1">
+                                <div class="font-semibold text-sky-300">D — Derivative</div>
+                                <p class="text-slate-400 leading-snug"><strong class="text-slate-200">“How fast is the error changing?”</strong> Damps motion and reduces overshoot. High → noisy / twitchy (amplifies gyro noise). Often left at zero for FLL.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-950/60 border border-panelborder rounded-xl p-4 space-y-2 text-[11px] text-slate-300">
+                        <h4 class="font-bold text-slate-100 text-sm">Why FLL gyro code is usually just P</h4>
+                        <ul class="list-disc pl-5 space-y-1 text-slate-400">
+                            <li>The robot is continuously moving; you don’t need perfect zero error every millisecond.</li>
+                            <li>Gyro noise is real — a strong D term often makes the robot jitter.</li>
+                            <li>Integral can “wind up” if the robot is blocked or a turn never quite finishes.</li>
+                        </ul>
+                        <p class="text-slate-400">So a well-tuned <strong class="text-slate-200">P</strong> (plus a small turn tolerance) is usually enough. That is exactly what <em>Drive Kp</em>, <em>Turn Kp</em>, and <em>Turn tolerance</em> control in the Tuning tab.</p>
+                    </div>
+
+                    <div class="bg-slate-950/60 border border-panelborder rounded-xl p-4 space-y-2 text-[11px] text-slate-300">
+                        <h4 class="font-bold text-slate-100 text-sm">How the gains feel on a real robot</h4>
+                        <ul class="list-disc pl-5 space-y-1 text-slate-400">
+                            <li><strong class="text-slate-200">Drive Kp too low</strong> → drifts and doesn’t fight heading error. <strong class="text-slate-200">Too high</strong> → left/right weaving.</li>
+                            <li><strong class="text-slate-200">Turn Kp too low</strong> → soft, slow pivots that may stop short. <strong class="text-slate-200">Too high</strong> → overshoots and hunts.</li>
+                            <li><strong class="text-slate-200">Tolerance too tight</strong> (e.g. 0.2°) → turn may never finish if the gyro is noisy. <strong class="text-slate-200">Too loose</strong> → inaccurate headings for the next segment.</li>
+                        </ul>
+                    </div>
+
+                    <div class="bg-slate-950/60 border border-panelborder rounded-xl p-4 space-y-2.5 text-[11px]">
+                        <h4 class="font-bold text-slate-100 text-sm">Step-by-step mat procedure</h4>
+                        <div class="flex items-start gap-2.5">
+                            <span class="bg-slate-800 text-accent font-bold px-2 py-0.5 rounded text-[10px] shrink-0 font-mono">1</span>
+                            <p class="text-slate-300">Calibrate <strong class="text-white">wheel diameter</strong> and <strong class="text-white">track width</strong> first (Parts A &amp; B above). Gains cannot fix wrong robot dimensions.</p>
+                        </div>
+                        <div class="flex items-start gap-2.5">
+                            <span class="bg-slate-800 text-accent font-bold px-2 py-0.5 rounded text-[10px] shrink-0 font-mono">2</span>
+                            <p class="text-slate-300">Start with defaults: Drive Kp <span class="font-mono text-accent">2.0</span>, Turn Kp <span class="font-mono text-accent">1.8</span>, tolerance <span class="font-mono text-accent">1.0°</span>.</p>
+                        </div>
+                        <div class="flex items-start gap-2.5">
+                            <span class="bg-slate-800 text-accent font-bold px-2 py-0.5 rounded text-[10px] shrink-0 font-mono">3</span>
+                            <p class="text-slate-300">Export a long straight. If the robot drifts, raise Drive Kp by ~0.5. If it weaves, lower Drive Kp. Change only one number, re-export, re-test.</p>
+                        </div>
+                        <div class="flex items-start gap-2.5">
+                            <span class="bg-slate-800 text-accent font-bold px-2 py-0.5 rounded text-[10px] shrink-0 font-mono">4</span>
+                            <p class="text-slate-300">Run a 90° or 180° spin. Adjust Turn Kp and tolerance until the robot settles cleanly without hunting.</p>
+                        </div>
+                        <div class="flex items-start gap-2.5">
+                            <span class="bg-slate-800 text-accent font-bold px-2 py-0.5 rounded text-[10px] shrink-0 font-mono">5</span>
+                            <p class="text-slate-300">Re-export so the final gains appear in the generated code. Gains are saved with your project.</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-violet-950/40 border border-violet-500/30 rounded-lg p-3 text-[11px] text-violet-100/90 leading-relaxed">
+                        <strong class="text-violet-200">Classic tuning order:</strong> Start with I = 0 and D = 0 (pure P). Raise Kp until the robot responds quickly but still settles (or just starts to oscillate, then back off ~20–30%). Change <em>one</em> gain at a time and re-test the same motion. Typical useful ranges for this studio: Drive Kp 1.0–4.0, Turn Kp 1.0–3.0, tolerance 0.5–2.0°.
+                    </div>
                 </section>
 
                 <!-- SECTION 4: KEYBOARD SHORTCUTS -->
@@ -1153,7 +1334,11 @@ html[data-theme] input[type=range]{background:var(--border)} html[data-theme] ::
             driveSpeed: 250.0,   
             driveAccel: 400.0,   
             turnSpeed: 150.0,    
-            turnAccel: 300.0     
+            turnAccel: 300.0,
+            // Gyro correction gains (injected into every export)
+            driveKp: 2.0,        // proportional gain while driving straight
+            turnKp: 1.8,         // proportional gain while pivoting
+            turnTolerance: 1.0   // degrees — stop turn when |error| <= this
         };
 
         // Standard LEGO SPIKE Prime Presets (values stored in mm)
@@ -1333,6 +1518,36 @@ html[data-theme] input[type=range]{background:var(--border)} html[data-theme] ::
             recordHist();
         }
 
+        function clampGain(v, def, min, max) {
+            const n = parseFloat(v);
+            if (!isFinite(n)) return def;
+            return Math.max(min, Math.min(max, n));
+        }
+        function updateGyroGainsFromInput() {
+            robotConfig.driveKp = clampGain(document.getElementById('input-drive-kp')?.value, 2.0, 0.1, 20);
+            robotConfig.turnKp = clampGain(document.getElementById('input-turn-kp')?.value, 1.8, 0.1, 20);
+            robotConfig.turnTolerance = clampGain(document.getElementById('input-turn-tol')?.value, 1.0, 0.1, 10);
+            updateGyroGainInputsFromConfig();
+            updateCodeExport();
+            recordHist();
+            showToast('Gyro gains updated — re-export code to apply');
+        }
+        function updateGyroGainInputsFromConfig() {
+            const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+            setVal('input-drive-kp', (robotConfig.driveKp ?? 2.0).toFixed(1));
+            setVal('input-turn-kp', (robotConfig.turnKp ?? 1.8).toFixed(1));
+            setVal('input-turn-tol', (robotConfig.turnTolerance ?? 1.0).toFixed(1));
+        }
+        function resetGyroGains() {
+            robotConfig.driveKp = 2.0;
+            robotConfig.turnKp = 1.8;
+            robotConfig.turnTolerance = 1.0;
+            updateGyroGainInputsFromConfig();
+            updateCodeExport();
+            recordHist();
+            showToast('Gyro gains reset to defaults');
+        }
+
         function updateRobotInputsFromConfig() {
             const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
             setVal('input-track-width', mmToDisplay(robotConfig.trackWidth));
@@ -1343,6 +1558,7 @@ html[data-theme] input[type=range]{background:var(--border)} html[data-theme] ::
             setVal('input-drive-accel', mmToDisplay(robotConfig.driveAccel));
             setVal('input-turn-speed', robotConfig.turnSpeed);
             setVal('input-turn-accel', robotConfig.turnAccel);
+            updateGyroGainInputsFromConfig();
         }
 
         /* SPIKE PRIME ROBOT PRESETS LOGIC */
@@ -2525,6 +2741,9 @@ html[data-theme] input[type=range]{background:var(--border)} html[data-theme] ::
             const accelMM = robotConfig.driveAccel.toFixed(0);
             const turnRate = robotConfig.turnSpeed.toFixed(0);
             const turnAccel = robotConfig.turnAccel.toFixed(0);
+            const driveKp = (robotConfig.driveKp ?? 2.0).toFixed(1);
+            const turnKp = (robotConfig.turnKp ?? 1.8).toFixed(1);
+            const turnTol = (robotConfig.turnTolerance ?? 1.0).toFixed(1);
 
             let stepsCode = "";
             let stepNum = 1;
@@ -2545,6 +2764,7 @@ html[data-theme] input[type=range]{background:var(--border)} html[data-theme] ::
 
             return `# Created with FLL Path Studio by FTC Team 27003 The Churchill Hawks 2.0
 # Pybricks Python Path Script with Gyro Heading Correction
+# Gyro gains: drive_kp=${driveKp}, turn_kp=${turnKp}, turn_tolerance=${turnTol}°
 from pybricks.hubs import PrimeHub
 from pybricks.pupdevices import Motor
 from pybricks.parameters import Port, Direction
@@ -2581,12 +2801,13 @@ drive_base.settings(
 
 # --- GYRO HELPER FUNCTIONS ---
 # Headings are relative to the start pose, clockwise-positive (Pybricks convention).
+# Kp / tolerance values come from the Tuning tab in FLL Path Studio.
 from pybricks.tools import StopWatch
 
 def angle_diff(a, b):
     return (a - b + 180) % 360 - 180
 
-def drive_gyro(distance_mm, speed=${speedMM}, target_heading=0, kp=2.0, timeout_ms=None):
+def drive_gyro(distance_mm, speed=${speedMM}, target_heading=0, kp=${driveKp}, timeout_ms=None):
     """Drive straight with proportional gyro correction (with timeout)."""
     drive_base.reset()
     sign = 1 if distance_mm >= 0 else -1
@@ -2600,7 +2821,7 @@ def drive_gyro(distance_mm, speed=${speedMM}, target_heading=0, kp=2.0, timeout_
         wait(10)
     drive_base.stop()
 
-def turn_gyro(target_angle, turn_speed=${turnRate}, kp=1.8, tolerance=1.0, timeout_ms=5000):
+def turn_gyro(target_angle, turn_speed=${turnRate}, kp=${turnKp}, tolerance=${turnTol}, timeout_ms=5000):
     """Pivot to an absolute heading by the shortest way (with timeout)."""
     sw = StopWatch()
     while sw.time() < timeout_ms:
@@ -2624,6 +2845,9 @@ run_fll_mission()`;
             const wDiamCM = (robotConfig.wheelDiam / 10).toFixed(2);
             const speedPct = Math.min(100, Math.max(10, Math.round((robotConfig.driveSpeed / 500) * 100)));
             const turnPct = Math.min(100, Math.max(10, Math.round((robotConfig.turnSpeed / 300) * 100)));
+            const driveKp = (robotConfig.driveKp ?? 2.0).toFixed(1);
+            const turnTol = (robotConfig.turnTolerance ?? 1.0).toFixed(1);
+
 
             let stepsCode = "";
             let stepNum = 1;
@@ -2643,6 +2867,7 @@ run_fll_mission()`;
 
             return `# Created with FLL Path Studio by FTC Team 27003 The Churchill Hawks 2.0
 # SPIKE Prime Python Script with Gyro Yaw Correction
+# Gyro gains: drive_kp=${driveKp}, turn_tolerance=${turnTol}°
 from spike import PrimeHub, MotorPair, Motor
 from spike.control import wait_for_seconds
 import time
@@ -2656,7 +2881,7 @@ motors.set_default_speed(${speedPct})
 
 left_m = Motor('A')
 
-def drive_straight_gyro(distance_cm, speed=${speedPct}, target_yaw=0, kp=1.5):
+def drive_straight_gyro(distance_cm, speed=${speedPct}, target_yaw=0, kp=${driveKp}):
     """Drive straight with yaw feedback. Verify the yaw sign on your hub first."""
     degrees_target = abs(distance_cm / (3.14159 * ${wDiamCM})) * 360
     direction = -1 if distance_cm < 0 else 1   # negative distance = drive backward
@@ -2670,7 +2895,7 @@ def drive_straight_gyro(distance_cm, speed=${speedPct}, target_yaw=0, kp=1.5):
         time.sleep(0.01)
     motors.stop()
 
-def turn_to_angle(target_yaw, speed=${turnPct}, tolerance=1.5):
+def turn_to_angle(target_yaw, speed=${turnPct}, tolerance=${turnTol}):
     """Pivot turn to exact Gyro yaw angle."""
     for _ in range(600):  # safety limit
         yaw = hub.motion_sensor.get_yaw_angle()
@@ -2689,9 +2914,13 @@ run_fll_path()`;
         }
 
         function generateEV3Code() {
+            const driveKp = (robotConfig.driveKp ?? 2.0).toFixed(1);
+            const turnKp = (robotConfig.turnKp ?? 1.8).toFixed(1);
+            const turnTol = (robotConfig.turnTolerance ?? 1.0).toFixed(1);
             return `#!/usr/bin/env pybricks-micropython
 # Created with FLL Path Studio by FTC Team 27003 The Churchill Hawks 2.0
 # EV3 MicroPython Tank Drive Code with Gyro Correction
+# Gyro gains: drive_kp=${driveKp}, turn_kp=${turnKp}, turn_tolerance=${turnTol}°
 from pybricks.hubs import EV3Brick
 from pybricks.ev3devices import Motor, GyroSensor
 from pybricks.parameters import Port, Direction
@@ -2714,7 +2943,7 @@ from pybricks.tools import StopWatch
 def angle_diff(a, b):
     return (a - b + 180) % 360 - 180
 
-def drive_gyro(distance_mm, speed=${robotConfig.driveSpeed.toFixed(0)}, target_heading=0, kp=2.0):
+def drive_gyro(distance_mm, speed=${robotConfig.driveSpeed.toFixed(0)}, target_heading=0, kp=${driveKp}):
     drive_base.reset()
     sign = 1 if distance_mm >= 0 else -1
     limit = int(abs(distance_mm) / max(1, speed) * 2000) + 1500
@@ -2724,7 +2953,7 @@ def drive_gyro(distance_mm, speed=${robotConfig.driveSpeed.toFixed(0)}, target_h
         wait(10)
     drive_base.stop()
 
-def turn_gyro(target_angle, kp=1.8, tolerance=1.0, timeout_ms=5000):
+def turn_gyro(target_angle, kp=${turnKp}, tolerance=${turnTol}, timeout_ms=5000):
     sw = StopWatch()
     while sw.time() < timeout_ms:
         error = angle_diff(target_angle, gyro.angle())
@@ -2740,6 +2969,9 @@ def run_fll_mission():${(generatePybricksCode().split('def run_fll_mission():')[
         }
 
         function generatePyblockCode() {
+            const driveKp = (robotConfig.driveKp ?? 2.0).toFixed(1);
+            const turnKp = (robotConfig.turnKp ?? 1.8).toFixed(1);
+            const turnTol = (robotConfig.turnTolerance ?? 1.0).toFixed(1);
             let txt = `=====================================================\n`;
             txt += ` 🧩 PYBRICKS BLOCK CODE INSTRUCTIONS (WITH GYRO)\n`;
             txt += ` FLL Path Studio - FTC Team 27003 The Churchill Hawks 2.0\n`;
@@ -2756,6 +2988,13 @@ def run_fll_mission():${(generatePybricksCode().split('def run_fll_mission():')[
             txt += `3. Add 'Set drive base settings' block:\n`;
             txt += `  - Straight speed: [ ${robotConfig.driveSpeed.toFixed(0)} ] mm/s\n`;
             txt += `  - Turn rate: [ ${robotConfig.turnSpeed.toFixed(0)} ] deg/s\n\n`;
+
+            txt += `[🎛️ GYRO CORRECTION GAINS] (from Tuning tab)\n`;
+            txt += `  - Drive Kp (straight): [ ${driveKp} ]\n`;
+            txt += `  - Turn Kp (pivot): [ ${turnKp} ]\n`;
+            txt += `  - Turn tolerance: [ ${turnTol} ] degrees\n`;
+            txt += `  Tip: If the robot oscillates while driving, lower Drive Kp.\n`;
+            txt += `       If turns stop early or overshoot, adjust Turn Kp / tolerance.\n\n`;
 
             txt += `[🚀 ACTION BLOCKS WITH GYRO CORRECTION]\n`;
             let stepNum = 1;
@@ -2775,10 +3014,14 @@ def run_fll_mission():${(generatePybricksCode().split('def run_fll_mission():')[
         }
 
         function generateHumanInstructions() {
+            const driveKp = (robotConfig.driveKp ?? 2.0).toFixed(1);
+            const turnKp = (robotConfig.turnKp ?? 1.8).toFixed(1);
+            const turnTol = (robotConfig.turnTolerance ?? 1.0).toFixed(1);
             let txt = `=====================================================\n`;
             txt += ` FLL ROBOT STEP-BY-STEP HUMAN OPERATOR GUIDE (GYRO MODE)\n`;
             txt += ` Created by FTC Team 27003 The Churchill Hawks 2.0\n`;
             txt += ` Total Estimated Run Time: ${totalTime.toFixed(1)} seconds\n`;
+            txt += ` Gyro gains: Drive Kp=${driveKp}, Turn Kp=${turnKp}, Tolerance=${turnTol}°\n`;
             txt += `=====================================================\n\n`;
 
             if (waypoints.length > 0) {
